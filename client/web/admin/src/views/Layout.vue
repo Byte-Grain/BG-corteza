@@ -27,6 +27,7 @@
         </template>
       </c-topbar>
     </header>
+    {{ $t('general:extendSession.labels.warning', { countdownTime: 10 }) }}
 
     <aside
       v-if="allowed"
@@ -77,7 +78,9 @@
         <router-view />
       </div>
     </main>
+
     <c-prompts />
+
     <c-permissions-modal
       :labels="{
         save: $t('permissions:ui.save'),
@@ -106,10 +109,19 @@
         },
       }"
     />
+
+    <c-extend-session
+      :labels="{
+        extend: $t('general:extendSession.labels.extend'),
+        warning: (countdownTime) => $t('general:extendSession.labels.warning', { countdownTime }),
+      }"
+    />
   </div>
 </template>
+
 <script>
 import CTheMainNav from 'corteza-webapp-admin/src/components/CTheMainNav'
+import CExtendSession from 'corteza-webapp-admin/src/components/CExtendSession'
 import { components, mixins } from '@cortezaproject/corteza-vue'
 import { mapGetters } from 'vuex'
 
@@ -126,6 +138,7 @@ export default {
     CTopbar,
     CSidebar,
     CTheMainNav,
+    CExtendSession,
   },
 
   mixins: [
@@ -135,7 +148,6 @@ export default {
   data () {
     return {
       allowed: false,
-
       error: null,
       expanded: window.innerWidth > 576,
       pinned: window.innerWidth > 576,

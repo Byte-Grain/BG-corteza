@@ -2,7 +2,6 @@ import axios, { AxiosInstance } from 'axios'
 import { Make } from '../libs/url'
 import { system } from '@cortezaproject/corteza-js'
 import { PluginFunction } from 'vue'
-import { User } from '@cortezaproject/corteza-js/dist/system'
 
 const accessToken = Symbol('accessToken')
 const user = Symbol('user')
@@ -625,6 +624,66 @@ export class Auth {
 
   get user (): system.User | undefined {
     return this[user]
+  }
+
+  public setupActivityMonitoring (autoLogoutTimeout: number): void {
+    if (!autoLogoutTimeout || autoLogoutTimeout <= 0) {
+      return
+    }
+
+    autoLogoutTimeout = autoLogoutTimeout * 60000
+    let lastActivityTime = Date.now()
+
+    // Update last activity time and remove listeners since we don't need them anymore
+    const updateActivity = () => {
+      lastActivityTime = Date.now()
+      removeActivityListeners(updateActivity)
+    }
+
+    const addActivityListeners = () => {
+      // Desktop events
+      this.registerEventListener('mousemove', updateActivity)
+      this.registerEventListener('keypress', updateActivity)
+      this.registerEventListener('click', updateActivity)
+      this.registerEventListener('scroll', updateActivity)
+
+      // Mobile events
+      this.registerEventListener('touchstart', updateActivity)
+      this.registerEventListener('touchmove', updateActivity)
+      this.registerEventListener('touchend', updateActivity)
+    }
+
+    const removeActivityListeners = (handler: EventListener) => {
+      // Desktop events
+      window.removeEventListener('mousemove', handler)
+      window.removeEventListener('keypress', handler)
+      window.removeEventListener('click', handler)
+      window.removeEventListener('scroll', handler)
+
+      // Mobile events
+      window.removeEventListener('touchstart', handler)
+      window.removeEventListener('touchmove', handler)
+      window.removeEventListener('touchend', handler)
+    }
+
+    // Add initial listeners
+    addActivityListeners()
+
+    const autoLogoutInterval = setInterval(() => {
+      const timeSinceLastActivity = Date.now() - lastActivityTime
+
+      if (timeSinceLastActivity < autoLogoutTimeout) {
+        // Still active, re-add listeners for next interval
+        addActivityListeners()
+      } else if (this.$emit) {
+        if (this.$emit) {
+          this.$emit('auth-logout-warning')
+        }
+
+        // Clear the interval since we've emitted the warning
+        clearInterval(autoLogoutInterval)
+      }
+    }, 5000) // Check every 5 seconds
   }
 }
 
